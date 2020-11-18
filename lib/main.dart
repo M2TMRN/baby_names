@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 final dummySnapshot = [
   {"name": "Filip", "votes": 15},
@@ -39,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildBody(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: Firestore.instance.collection('baby').snapshots(),
+      stream: FirebaseFirestore.instance.collection('baby').snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return LinearProgressIndicator();
 
@@ -69,14 +74,16 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ListTile(
           title: Text(record.name),
           trailing: Text(record.votes.toString()),
-          onTap: () => //record.reference.updateData({'votes':  FieldValue.increment(1)}), //simple approach
-          Firestore.instance.runTransaction((transaction) async {
+          onTap:
+              () => //record.reference.updateData({'votes':  FieldValue.increment(1)}), //simple approach
+
+                  FirebaseFirestore.instance
+                      .runTransaction((transaction) async {
             final freshSnapshot = await transaction.get(record.reference);
 
             final fresh = Record.fromSnapshot(freshSnapshot);
 
-            await transaction.update(record.reference,
-                {'votes': fresh.votes+ 1});
+            transaction.update(record.reference, {'votes': fresh.votes + 1});
           }),
         ),
       ),
@@ -96,7 +103,7 @@ class Record {
         votes = map['votes'];
 
   Record.fromSnapshot(DocumentSnapshot snapshot)
-      : this.fromMap(snapshot.data, reference: snapshot.reference);
+      : this.fromMap(snapshot.data(), reference: snapshot.reference);
 
   @override
   String toString() => "Record<$name:$votes>";
